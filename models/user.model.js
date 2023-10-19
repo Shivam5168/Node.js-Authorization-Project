@@ -13,6 +13,10 @@ const UserSchema = new mongoose.Schema({
         type : String,
         required : true
     },
+    token : {
+        type : String,
+        default : ''
+    },
     date : {
         type : Date,
         default : Date.now

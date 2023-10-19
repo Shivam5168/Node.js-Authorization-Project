@@ -2,7 +2,9 @@ const express = require('express');
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const randomString = require('randomstring');
 const  { ensureAuthentiated } = require('../config/auth');
+const config = require('../config/forget.config');
 const router = express.Router();
 
 //Login page
@@ -14,10 +16,15 @@ router.get('/dashboard', (req, res) =>
     res.render('dashboard')
 )
 
+router.get('/forgetPassword', (req, res) => {
+    res.render('forget');
+})
+
 //Register Page
 router.get('/register', (req, res) => {
     res.render('register');
 });
+
 
 //Register Data to DB
 router.post('/register', (req, res) => {
@@ -79,7 +86,7 @@ router.post('/register', (req, res) => {
     }
 });
 
-
+//Login
 router.post('/login', (req, res, next) => {
     passport.authenticate('local', {
         successRedirect : 'dashboard',
@@ -87,5 +94,56 @@ router.post('/login', (req, res, next) => {
         failureFlash : true
     })(req, res, next);
 });
+
+//Forget Password Link
+const sendResetPasswordMail = async (name, email, token, res) => {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465, // Use port 465 for SSL
+        secure: true,
+        auth: {
+          user: config.email, // Replace with your email
+          pass: config.password, // Use the App Password generated for your email
+        },
+      });
+  
+      const mailOptions = {
+        from: config.email, // Replace with your email
+        to: email,
+        subject: 'Password Reset Request',
+        html: `<p>Hi ${name},</p><p>Please copy the link to reset your password: <a href="http://localhost:7000/api/forgetpassword?token=${token}">Reset Password</a></p>`,
+      };
+  
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log(error);
+          res.status(400).send({ success: false, msg: error.message });
+        } else {
+          console.log('Mail has been sent:', info.response);
+          res.status(200).send({ success: true, msg: 'Email sent successfully' });
+        }
+      });
+    } catch (error) {
+      res.status(500).send({ success: false, msg: error.message });
+    }
+  };
+
+
+//Forget Password
+ router.post('/forgetPassword', (req, res) => {
+    const {  email } = req.body;
+    User.findOne({email : email})
+    .then(user => {
+        if(user){
+            const randomStringValue = randomString.generate();
+            User.updateOne({ email : email }, { $set : { token : randomStringValue }});
+            console.log(randomStringValue);
+        }
+        else{
+            res.render('forget', {message : "User email is incorrect."})
+        }
+    })
+})
 
 module.exports = router;
