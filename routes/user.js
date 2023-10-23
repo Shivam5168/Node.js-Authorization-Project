@@ -6,6 +6,7 @@ const randomString = require('randomstring');
 const  { ensureAuthentiated } = require('../config/auth');
 const config = require('../config/forget.config');
 const router = express.Router();
+const nodemailer = require('nodemailer');
 
 //Login page
 router.get('/login', (req, res) => {
@@ -25,6 +26,9 @@ router.get('/register', (req, res) => {
     res.render('register');
 });
 
+router.get('/forgetLink', (req, res) => {
+    res.render('forgetPassword');
+})
 
 //Register Data to DB
 router.post('/register', (req, res) => {
@@ -112,20 +116,22 @@ const sendResetPasswordMail = async (name, email, token, res) => {
         from: config.email, // Replace with your email
         to: email,
         subject: 'Password Reset Request',
-        html: `<p>Hi ${name},</p><p>Please copy the link to reset your password: <a href="http://localhost:7000/api/forgetpassword?token=${token}">Reset Password</a></p>`,
+        html: `<p>Hi ${name},</p><p>Please copy the link to reset your password: <a href="http://localhost:5000/api/user/resetPassword?token=${token}">Reset Password</a></p>`,
       };
   
       transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
           console.log(error);
-          res.status(400).send({ success: false, msg: error.message });
+          //res.send({ success: false, msg: error.message });
         } else {
+            res.redirect('/user/forgetPassword')
           console.log('Mail has been sent:', info.response);
-          res.status(200).send({ success: true, msg: 'Email sent successfully' });
+          //res.send({ success: true, msg: 'Email sent successfully' });
         }
       });
     } catch (error) {
-      res.status(500).send({ success: false, msg: error.message });
+        console.log('Error in sending message sent:', error);
+      //res.send({ success: false, msg: error.message });
     }
   };
 
@@ -138,9 +144,11 @@ const sendResetPasswordMail = async (name, email, token, res) => {
         if(user){
             const randomStringValue = randomString.generate();
             User.updateOne({ email : email }, { $set : { token : randomStringValue }});
+            sendResetPasswordMail(user.name, user.email, randomStringValue)
             console.log(randomStringValue);
         }
         else{
+            console.log("User email is incorrect.")
             res.render('forget', {message : "User email is incorrect."})
         }
     })
