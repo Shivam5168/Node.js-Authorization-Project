@@ -26,10 +26,13 @@ router.get('/register', (req, res) => {
     res.render('register');
 });
 
-router.get('/forgetLink', (req, res) => {
-    res.render('forgetPassword');
+router.get('/resetPassword', (req, res) => {
+    res.render('resetPassword');
 })
 
+router.get('/resetPasswordData/:token', (req, res) => {
+    res.render('resetPasswordData');
+})
 //Register Data to DB
 router.post('/register', (req, res) => {
 
@@ -116,7 +119,7 @@ const sendResetPasswordMail = async (name, email, token, res) => {
         from: config.email, // Replace with your email
         to: email,
         subject: 'Password Reset Request',
-        html: `<p>Hi ${name},</p><p>Please copy the link to reset your password: <a href="http://localhost:5000/api/user/resetPassword?token=${token}">Reset Password</a></p>`,
+        html: `<p>Hi ${name},</p><p>Please copy the link to reset your password ${token}: <a href="http://localhost:5000/user/resetPasswordData/${token}">Reset Password</a></p>`,
       };
   
       transporter.sendMail(mailOptions, (error, info) => {
@@ -146,6 +149,7 @@ const sendResetPasswordMail = async (name, email, token, res) => {
             User.updateOne({ email : email }, { $set : { token : randomStringValue }});
             sendResetPasswordMail(user.name, user.email, randomStringValue)
             console.log(randomStringValue);
+            res.render('resetPassword')
         }
         else{
             console.log("User email is incorrect.")
@@ -153,5 +157,16 @@ const sendResetPasswordMail = async (name, email, token, res) => {
         }
     })
 })
+
+//forgetPasswordEdit
+router.put('/forgetPassword', (req, res) => {
+    const { token } = req.params;
+    console.log(token)
+    User.findOne({token : token})
+    const password = req.body.password
+    console.log(password)
+    .then(user => User.updateOne({ token : token }, { $set : { password : password }}))
+    .catch(err => console.log(err));
+} )
 
 module.exports = router;
