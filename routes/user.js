@@ -159,12 +159,11 @@ const sendResetPasswordMail = async (name, email, token, res) => {
 })
 
 //forgetPasswordEdit
-router.put('/forgetPassword', (req, res) => {
+router.post('/resetPasswordData', (req, res) => {
     const { token } = req.params;
-    console.log(token)
-    User.findOne({token : token})
-    const password = req.body.password
+    const {password }= req.body
     console.log(password)
+    User.findOne({token : token})
     .then(user => User.updateOne({ token : token }, { $set : { password : password }}))
     .catch(err => console.log(err));
 } )
